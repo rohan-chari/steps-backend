@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 import { asyncHandler } from '../middleware/error';
+import userRoutes from './users.routes';
 
 const router = Router();
+
+// Mount route modules
+router.use('/user', userRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -43,7 +47,7 @@ router.get('/', (req, res) => {
     endpoints: {
       health: '/api/health',
       dbHealth: '/api/db-health',
-      users: '/api/users'
+      users: '/api/users/me'
     },
     timestamp: new Date().toISOString()
   });
