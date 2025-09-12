@@ -1,40 +1,46 @@
 import { prisma } from '../config/prisma';
-import { UserSyncData } from '../schemas/users.schema';
+import { UserSyncData, UserUpdateData } from '../schemas/users.schema';
 
 export const UsersRepo = {
   findByFirebaseUid(firebaseUid: string) {
     return prisma.user.findUnique({ where: { firebaseUid } });
   },
 
-  async syncUser(userData: UserSyncData) {
-    const { firebaseUid, email, username, displayName, emailVerified, photoUrl, expoPushToken, stepGoal, isOnboarded } = userData;
-    
-    // Use upsert to create or update the user
+  async createUserIfNotExists(firebaseUid: string, email: string) {
+    // Use upsert to create user if they don't exist, or just return existing user
     return prisma.user.upsert({
       where: { firebaseUid },
       update: {
-        email,
-        username,
-        displayName,
-        emailVerified,
-        photoUrl: photoUrl || null,
-        expoPushToken,
-        stepGoal,
-        isOnboarded,
         lastLoginAt: new Date(),
         updatedAt: new Date(),
       },
       create: {
         firebaseUid,
         email,
-        username,
-        displayName,
-        emailVerified: emailVerified || false,
-        photoUrl: photoUrl || null,
-        expoPushToken,
-        stepGoal,
-        isOnboarded: isOnboarded || false,
+        username: '',
+        displayName: null,
+        emailVerified: false,
+        photoUrl: null,
+        expoPushToken: null,
+        stepGoal: 10000,
+        isOnboarded: false,
         lastLoginAt: new Date(),
+      },
+    });
+  },
+
+  async updateUser(firebaseUid: string, updateData: UserUpdateData) {
+    // Check if user exists
+    const currentUser = await this.findByFirebaseUid(firebaseUid);
+    if (!currentUser) {
+      throw new Error('User not found');
+    }
+    
+    return prisma.user.update({
+      where: { firebaseUid },
+      data: {
+        ...updateData,
+        updatedAt: new Date(),
       },
     });
   },

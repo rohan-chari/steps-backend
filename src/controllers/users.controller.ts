@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { UsersRepo } from '../repos/users.repo';
 import { logger } from '../config/logger';
-import { UserSyncSchema } from '../schemas/users.schema';
+import { UserSyncSchema, UserUpdateSchema } from '../schemas/users.schema';
 
 export const UsersController = {
   me: async (req: Request, res: Response) => {
@@ -47,14 +47,12 @@ export const UsersController = {
         return res.status(401).json({ error: 'Unauthorized - no user ID found' });
       }
 
-      // Validate request body
+      // Validate request body - only need email for sync
       const validationResult = UserSyncSchema.safeParse(req.body);
       if (!validationResult.success) {
         logger.warn('Invalid sync request data', { 
           errors: validationResult.error.errors,
-          body: req.body,
-          errorMessage: validationResult.error.message,
-          errorIssues: validationResult.error.issues
+          body: req.body
         });
         return res.status(400).json({ 
           error: 'Invalid request data',
@@ -63,44 +61,21 @@ export const UsersController = {
         });
       }
 
-      const userData = validationResult.data;
+      const { email } = validationResult.data;
       
-      // Check if user has completed onboarding requirements
-      const hasUsername = userData.username && userData.username.trim().length > 0;
-      const hasDisplayName = userData.displayName && userData.displayName.trim().length > 0;
-      const hasStepGoal = userData.stepGoal && userData.stepGoal > 0;
-      
-      // Auto-set isOnboarded based on completion of required fields
-      const isOnboarded = hasUsername && hasDisplayName && hasStepGoal;
-      
-      // Override firebaseUid with the authenticated user's UID for security
-      const secureUserData = {
-        ...userData,
-        firebaseUid: firebaseUid,
-        isOnboarded: Boolean(isOnboarded)
-      };
-      
-      logger.info('Syncing user data', { 
-        firebaseUid: secureUserData.firebaseUid,
-        email: secureUserData.email,
-        username: secureUserData.username,
-        displayName: secureUserData.displayName,
-        stepGoal: secureUserData.stepGoal,
-        isOnboarded: isOnboarded,
-        onboardingCheck: {
-          hasUsername,
-          hasDisplayName,
-          hasStepGoal
-        }
+      logger.info('Syncing user - ensuring user exists in database', { 
+        firebaseUid,
+        email
       });
 
-      const user = await UsersRepo.syncUser(secureUserData);
+      // Create user if they don't exist, or update lastLoginAt if they do
+      const user = await UsersRepo.createUserIfNotExists(firebaseUid, email);
       
-      logger.info('User synced successfully', { 
+      logger.info('User sync completed', { 
         userId: user.id, 
         firebaseUid: user.firebaseUid,
         email: user.email,
-        username: user.username 
+        isNewUser: user.createdAt.getTime() === user.updatedAt.getTime()
       });
       
       return res.json({
@@ -131,6 +106,75 @@ export const UsersController = {
         stack: error instanceof Error ? error.stack : undefined
       });
       return res.status(500).json({ error: 'Failed to sync user' });
+    }
+  },
+
+  update: async (req: Request, res: Response) => {
+    try {
+      const firebaseUid = req.user?.uid;
+      
+      if (!firebaseUid) {
+        logger.warn('No Firebase UID found in request');
+        return res.status(401).json({ error: 'Unauthorized - no user ID found' });
+      }
+
+      // Validate request body
+      const validationResult = UserUpdateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        logger.warn('Invalid update request data', { 
+          errors: validationResult.error.errors,
+          body: req.body
+        });
+        return res.status(400).json({ 
+          error: 'Invalid request data',
+          message: validationResult.error.message,
+          details: validationResult.error.errors 
+        });
+      }
+
+      const updateData = validationResult.data;
+      
+      logger.info('Updating user profile', { 
+        firebaseUid,
+        updateFields: Object.keys(updateData)
+      });
+
+      const user = await UsersRepo.updateUser(firebaseUid, updateData);
+      
+      logger.info('User profile updated successfully', { 
+        userId: user.id, 
+        firebaseUid: user.firebaseUid,
+        isOnboarded: user.isOnboarded
+      });
+      
+      return res.json({
+        success: true,
+        user: {
+          id: user.id,
+          firebaseUid: user.firebaseUid,
+          email: user.email,
+          username: user.username,
+          displayName: user.displayName,
+          emailVerified: user.emailVerified,
+          photoUrl: user.photoUrl,
+          expoPushToken: user.expoPushToken,
+          stepGoal: user.stepGoal,
+          isOnboarded: user.isOnboarded,
+          challengeWins: user.challengeWins,
+          challengeLosses: user.challengeLosses,
+          isActive: user.isActive,
+          lastLoginAt: user.lastLoginAt,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        }
+      });
+    } catch (error) {
+      logger.error('Error updating user', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        body: req.body,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      return res.status(500).json({ error: 'Failed to update user' });
     }
   },
 };
