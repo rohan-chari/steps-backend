@@ -3,19 +3,22 @@ import { StepsRepo } from '../repos/steps.repo';
 import { UsersRepo } from '../repos/users.repo';
 import { logger } from '../config/logger';
 
-// TODO(auth): replace with real auth middleware (Firebase/local-jwt)
-// For now we read a single dev UID from env and fetch that user.
-const DEV_UID = 'uid-123';
-
 export const StepsController = {
-  me: async (_req: Request, res: Response) => {
+  me: async (req: Request, res: Response) => {
     try {
-      logger.info('Fetching today\'s steps data', { firebaseUid: DEV_UID });
+      const firebaseUid = req.user?.uid;
       
-      const user = await UsersRepo.findByFirebaseUid(DEV_UID);
+      if (!firebaseUid) {
+        logger.warn('No Firebase UID found in request');
+        return res.status(401).json({ error: 'Unauthorized - no user ID found' });
+      }
+
+      logger.info('Fetching today\'s steps data', { firebaseUid });
+      
+      const user = await UsersRepo.findByFirebaseUid(firebaseUid);
       if (!user) {
-        logger.warn('User not found when fetching steps', { firebaseUid: DEV_UID });
-        return res.status(404).json({ error: 'User not found (dev uid)' });
+        logger.warn('User not found when fetching steps', { firebaseUid });
+        return res.status(404).json({ error: 'User not found in database' });
       }
       
       // Get today's date (date only, no time)
@@ -66,7 +69,7 @@ export const StepsController = {
     } catch (error) {
       logger.error('Error fetching today\'s steps', { 
         error: error instanceof Error ? error.message : 'Unknown error',
-        firebaseUid: DEV_UID,
+        firebaseUid: req.user?.uid,
         stack: error instanceof Error ? error.stack : undefined
       });
       return res.status(500).json({ error: 'Failed to fetch today\'s steps' });

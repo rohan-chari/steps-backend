@@ -19,6 +19,8 @@ model User {
   emailVerified   Boolean   @default(false) @map("email_verified")
   photoUrl        String?   @map("photo_url")
   expoPushToken   String?   @map("expo_push_token")
+  stepGoal        Int       @default(10000) @map("step_goal")
+  isOnboarded     Boolean   @default(false) @map("is_onboarded")
   challengeWins   Int       @default(0) @map("challenge_wins")
   challengeLosses Int       @default(0) @map("challenge_losses")
   isActive        Boolean   @default(true) @map("is_active")

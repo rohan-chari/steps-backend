@@ -50,6 +50,7 @@ router.get('/', (req, res) => {
       health: '/api/health',
       dbHealth: '/api/db-health',
       users: '/api/users/me',
+      userSync: '/api/users/sync',
       steps: '/api/steps/me/today'
     },
     timestamp: new Date().toISOString()
