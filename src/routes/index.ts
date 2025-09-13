@@ -52,7 +52,8 @@ router.get('/', (req, res) => {
       users: '/api/users/me',
       userSync: '/api/users/sync',
       userUpdate: '/api/users/update',
-      steps: '/api/steps/me/today'
+      steps: '/api/steps/me/today',
+      stepsUpdate: '/api/steps/update'
     },
     timestamp: new Date().toISOString()
   });

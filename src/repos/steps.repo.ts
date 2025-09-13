@@ -16,4 +16,26 @@ export const StepsRepo = {
       }
     });
   },
+
+  async upsertByUserIdAndDate(userId: number, dateString: string, stepCount: number) {
+    const stepDate = new Date(dateString);
+    
+    return prisma.stepsDaily.upsert({
+      where: {
+        uq_user_day: {
+          userId,
+          stepDate
+        }
+      },
+      update: {
+        stepCount,
+        lastSyncedAt: new Date(),
+      },
+      create: {
+        userId,
+        stepDate,
+        stepCount,
+      },
+    });
+  },
 };

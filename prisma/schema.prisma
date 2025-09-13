@@ -40,7 +40,6 @@ model StepsDaily {
   userId       Int
   stepDate     DateTime @db.Date
   stepCount    Int      @default(0)
-  sourceHint   String?  @db.VarChar(128)
   lastSyncedAt DateTime @updatedAt
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
