@@ -52,6 +52,8 @@ router.get('/', (req, res) => {
       users: '/api/users/me',
       userSync: '/api/users/sync',
       userUpdate: '/api/users/update',
+      userHomepage: '/api/users/homepage',
+      userSearch: '/api/users/search',
       steps: '/api/steps/me/today',
       stepsUpdate: '/api/steps/update'
     },
