@@ -198,16 +198,13 @@ export const UsersController = {
       // Calculate streaks from actual steps data
       const streaks = await UsersRepo.calculateStreaks(user.id);
       
-      // TODO: Add logic for friend requests, challenges, etc.
-      // For now, return basic user data and placeholder structure
+      // Get incoming friend request count for notification badge
+      const incomingFriendRequestCount = await UsersRepo.getIncomingFriendRequestCount(user.id);
+      
       const homepageData = {
         streaks: {
           currentStreak: streaks.currentStreak,
           longestStreak: streaks.longestStreak,
-        },
-        friendRequests: {
-          pending: [], // TODO: Implement friend system
-          sent: [], // TODO: Implement friend system
         },
         challenges: {
           active: [], // TODO: Implement challenge system
@@ -219,10 +216,7 @@ export const UsersController = {
           monthly: [], // TODO: Implement leaderboard
           allTime: [], // TODO: Implement leaderboard
         },
-        notifications: {
-          unread: 0, // TODO: Implement notification system
-          recent: [], // TODO: Implement notification system
-        }
+        notifications: incomingFriendRequestCount
       };
       
       logger.info('Homepage data fetched successfully', { 

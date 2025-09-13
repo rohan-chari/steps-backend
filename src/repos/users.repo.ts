@@ -165,5 +165,15 @@ export const UsersRepo = {
       orderBy: { username: 'asc' },
       take: limit
     });
+  },
+
+  async getIncomingFriendRequestCount(userId: number) {
+    // Get count of incoming friend requests (pending requests sent to this user)
+    return await prisma.friendRequest.count({
+      where: {
+        receiverId: userId,
+        status: 'pending'
+      }
+    });
   }
 };
