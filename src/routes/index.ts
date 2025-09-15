@@ -3,12 +3,14 @@ import { prisma } from '../config/prisma';
 import { asyncHandler } from '../middleware/error';
 import userRoutes from './users.routes';
 import stepsRoutes from './steps.routes';
+import socialRoutes from './social.routes';
 
 const router = Router();
 
 // Mount route modules
 router.use('/users', userRoutes);
 router.use('/steps', stepsRoutes);
+router.use('/social', socialRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -55,7 +57,14 @@ router.get('/', (req, res) => {
       userHomepage: '/api/users/homepage',
       userSearch: '/api/users/search',
       steps: '/api/steps/me/today',
-      stepsUpdate: '/api/steps/update'
+      stepsUpdate: '/api/steps/update',
+      social: {
+        sendFriendRequest: '/api/social/friend-requests',
+        respondToFriendRequest: '/api/social/friend-requests/respond',
+        cancelFriendRequest: '/api/social/friend-requests/cancel',
+        getFriendRequests: '/api/social/friend-requests',
+        getFriends: '/api/social/friends'
+      }
     },
     timestamp: new Date().toISOString()
   });

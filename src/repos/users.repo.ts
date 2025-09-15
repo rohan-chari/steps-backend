@@ -148,7 +148,8 @@ export const UsersRepo = {
   
     const searchTerm = query.trim();
   
-    return await prisma.user.findMany({
+    // Get search results
+    const users = await prisma.user.findMany({
       where: {
         id: { not: currentUserId },
         isActive: true,
@@ -161,10 +162,54 @@ export const UsersRepo = {
         id: true,
         username: true,
         displayName: true,
+        photoUrl: true,
       },
       orderBy: { username: 'asc' },
       take: limit
     });
+
+    // Get relationship status for each user
+    const userIds = users.map(user => user.id);
+    
+    const friendRequests = await prisma.friendRequest.findMany({
+      where: {
+        OR: [
+          { senderId: currentUserId, receiverId: { in: userIds } },
+          { senderId: { in: userIds }, receiverId: currentUserId }
+        ]
+      },
+      select: {
+        id: true,
+        senderId: true,
+        receiverId: true,
+        status: true,
+        createdAt: true,
+        respondedAt: true
+      }
+    });
+
+    // Create a map of relationships
+    const relationshipMap = new Map<number, any>();
+    
+    friendRequests.forEach(request => {
+      const otherUserId = request.senderId === currentUserId ? request.receiverId : request.senderId;
+      relationshipMap.set(otherUserId, {
+        requestId: request.id.toString(),
+        status: request.status,
+        isIncoming: request.receiverId === currentUserId,
+        createdAt: request.createdAt,
+        respondedAt: request.respondedAt
+      });
+    });
+
+    // Add relationship status to each user
+    return users.map(user => ({
+      ...user,
+      relationship: relationshipMap.get(user.id) || {
+        status: 'none', // No relationship exists
+        isIncoming: false
+      }
+    }));
   },
 
   async getIncomingFriendRequestCount(userId: number) {

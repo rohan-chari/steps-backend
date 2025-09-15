@@ -73,7 +73,5 @@ model FriendRequest {
 enum FriendRequestStatus {
   pending
   accepted
-  rejected
-  canceled
 }
 
